@@ -1,6 +1,7 @@
+import Chart from 'chart.js'
 
 drawD3JsLine('#d3JsLine');
-
+drawChartJsDoughnut();
 
 function packData(p) {
 	var data = p;
@@ -35,14 +36,36 @@ function packData(p) {
 
 function drawD3JsLine(selector) {
 
-	d3.json("spain-inflation.json", function(data) {
-		console.log(data);
-	});
+	var years = []
+	var values = []
+
+
+	// d3.json("https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/GDP-data.json")
+	// 	.then(json => {
+
+	// 		const data = json.data; // array of dates and values
+	// 		const lowestVal = d3.min(data, d => d[1]);
+	// 		const highestVal = d3.max(data, d => d[1]);
+
+	// 		console.log(lowestVal);
+	// 		console.log(highestVal);
+	// 	})
+	// 	.catch(error => {
+	// 		console.error(error);
+	// 	});
+	// d3.json("https://raw.githubusercontent.com/denispato679/Visual-analytics/main/spain-inflation.json", function(data) {
+	// 	console.log(data);
+	// 	years = data.series.docs[0].period;
+	// 	values = data.series.docs[0].value;
+	// });
+
+	//console.log(years)
+	//console.log(values)
 
 	var info = packData({
 		labels: ["Niger", "Cameroon", "Georgia", "Spain", "United States", "Singapore", "Qatar"],
 		datasets: [{
-			label: 'GDP Per Capita in $  (2015)',
+			label: 'Inflation Index in Spain  (1980-2025)',
 			data: [1080, 3144, 9630, 34819, 55805, 85253, 132099]
 		}]
 	});
