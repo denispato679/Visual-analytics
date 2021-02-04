@@ -1,13 +1,23 @@
 <!DOCTYPE html>
 <head>
 <meta charset="utf-8">
-<title>Multi Line Chart</title>
+<title>Economía Mundial</title>
 <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
 <link rel="stylesheet" type="text/css" href="styles.css">
 <style></style>
 </head>
 <body>
-<div id="container" class="svg-container"></div>
+<div id="main">
+    <h1>Factores Económicos</h1>
+    <div id="container" class="svg-container">
+        <label class="pib-combo" for="groups">Seleccione el grupo de países para visualizar su evolución de PIB:</label>
+        <select name="groups" id="groups">
+            <option value="europe">Potencias de Europa</option>
+            <option value="world">Potencias Mundiales</option>
+        </select>
+    </div>
+</div>
+
 <script>
 //------------------------1. PREPARATION------------------------//
 //-----------------------------SVG------------------------------//
@@ -47,7 +57,7 @@ dataset.then(function(data) {
 console.log(data)    
 //----------------------------SCALES----------------------------//
 const xScale = d3.scaleTime().range([0,width]);
-const yScale = d3.scaleLinear().rangeRound([height, 0]);
+const yScale = d3.scaleLinear().range([height, 0]);
 xScale.domain(d3.extent(data, function(d){
     return timeConv(d.date)}));
 
@@ -56,7 +66,10 @@ yScale.domain([1000000,3500000]);
 //-----------------------------AXES-----------------------------//
 const yaxis = d3.axisLeft()
     .scale(yScale)
-    .tickFormat(function(d){return d/1000000 + " M"});
+    .ticks(20)
+    .tickFormat(function(d){
+        console.log(d/1000000)
+        return d/1000000+"M"});
 
 const xaxis = d3.axisBottom()
     .tickFormat(d3.timeFormat('%Y'))
@@ -106,7 +119,7 @@ lines.append("path")
     .attr("d", function(d) { return line(d.values); });
 
 lines.append("text")
-    .attr("class","serie_label")
+    .attr("class","country_label")
     .datum(function(d) {
         return {
             id: d.id,
@@ -115,7 +128,17 @@ lines.append("text")
             return "translate(" + (xScale(d.value.date) + 10)  
             + "," + (yScale(d.value.measurement) + 5 )+ ")"; })
     .attr("x", 5)
-    .text(function(d) { return ("Serie ") + d.id; });
+    .text(function(d) { 
+        if (d.id == "A")
+            return ("España");
+        else if (d.id == "B")
+            return ("Alemania")
+        else if (d.id == "C")
+            return ("Francia")
+        else if (d.id == "D")
+            return ("Italia")
+        else
+            return ("Unknown ") + d.id; });
 
 //---------------------------POINTS-----------------------------// 
 lines.selectAll("points")

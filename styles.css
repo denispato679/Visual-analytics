@@ -38,6 +38,12 @@ stroke: #9c9c9c;
 stroke-dasharray: 6;
 }
 
+path.line-3 {
+fill: none;
+stroke: #0ab5ac;
+stroke-dasharray: 4;
+}
+
 .serie_label {
 fill: #2b2929;
 font-family: Georgia;
@@ -54,5 +60,46 @@ font-size: 150%;
 /* POINTS */
 .point {
 stroke: none;
-fill: #9c9c9c;
+fill: #eff305;
+}
+
+/* AXIS TEXT */
+.axis text {
+    font-size: 95%;
+}
+
+/* COUNTRY LABEL */
+.country_label {
+    font-size: 69%;
+}
+
+#main {
+    text-align: center;
+}
+
+h1 {
+    margin-top: 0%;
+    color: #2b2929;
+    font-family: Georgia;
+    background-color: rgba(165, 42, 42, 0.583);
+}
+
+label {
+    color: #2b2929;
+    font-family: Georgia;
+    font-size: 70%;
+}
+
+select {
+    color: #2b2929;
+    font-family: Georgia;
+    font-size: 70%;
+}
+
+#container {
+    margin-left: auto ;
+    margin-right: auto ;
+    margin-top: 5%;
+    width: 60%;
+    height: 60%;
 }
