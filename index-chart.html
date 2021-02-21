@@ -7,13 +7,23 @@
     <!-- Clean circular color palette -->
     <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
 
+    <script src="https://d3js.org/topojson.v2.min.js"></script>
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+    <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+    <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.4.1/tinycolor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-tip@0.9.1/dist/index.min.js"></script>
+
     <link rel="stylesheet" type="text/css" href="styles.css">
     <style></style>
 </head>
 
 <body>
     <div id="main">
-        <h1>Factores Económicos</h1>
+        <h1>Factores Socioeconómicos</h1>
+        <h2>Comparativa PIB 2011-2020</h2>
         <label class="pib-combo" for="groups">Seleccione el grupo de países para visualizar su evolución de PIB:</label>
         <select name="groups" id="groups" onchange="changeLineChart()">
             <option value="" disabled selected style="display:none;">Sin seleccionar</option>
@@ -21,324 +31,590 @@
             <option value="world">Potencias Mundiales</option>
         </select>
         <div id="container" class="svg-container"></div>
-        <div id="circle_container"></div>
+        <h2>Comparativa índice de desempleo 2015-2020</h2>
+        <div class="slider">
+            <input type="range" min="2019" max="2020" value="2019" oninput="rangeValue.innerText = this.value" onchange="changeCircularChart(this.value)">
+            <p id="rangeValue">2019</p>
+        </div>
+        <div id="circle_container" class="svg-container"></div>
+        <h2>Esperanza de vida por países</h2>
+        <div id="map_container" class="svg-container"></div>
+        <div>
+            <h2 id="currentYear">2011</h2>
+            <button id="sub_button" style="background: rgb(240,246,253)" onclick="subtractYearAndRedraw()" disabled> < </button>
+
+            <button id="add_button" style="background: rgb(244,249,254)" onclick="addYearAndRedraw()"> > </button>
+        </div>
     </div>
 
-<script>
+    <script>
 
-function drawLineChart(dataFile, domainChart, badge) {
-    //------------------------1. PREPARATION------------------------//
-    //-----------------------------SVG------------------------------//
-    const width = 960;
-    const height = 500;
-    const margin = 5;
-    const padding = 5;
-    const adj = 30;
-    // we are appending SVG first
-    const svg = d3.select("div#container").append("svg")
-        .attr("preserveAspectRatio", "xMinYMin meet")
-        .attr("viewBox", "-"
-            + adj + " -"
-            + adj + " "
-            + (width + adj * 3) + " "
-            + (height + adj * 3))
-        .style("padding", padding)
-        .style("margin", margin)
-        .classed("svg-content", true);
+        function addYearAndRedraw() {
+            currentYear = currentYear + 1;
+            reDraw(currentYear);
 
-    //-----------------------------DATA-----------------------------//
-    const timeConv = d3.timeParse("%Y");
-    const dataset = d3.csv(dataFile);
-    dataset.then(function (data) {
-        var slices = data.columns.slice(1).map(function (id) {
-            return {
-                id: id,
-                values: data.map(function (d) {
-                    return {
-                        date: timeConv(d.date),
-                        measurement: +d[id]
-                    };
-                })
-            };
-        });
+            if (currentYear > 2011) {
+                document.getElementById("sub_button").disabled = false;
+            }
+            if (currentYear == 2020) {
+                document.getElementById("add_button").disabled = true;
+            }
+        }
 
-        console.log(data)
-        //----------------------------SCALES----------------------------//
-        const xScale = d3.scaleTime().range([0, width]);
-        const yScale = d3.scaleLinear().range([height, 0]);
-        xScale.domain(d3.extent(data, function (d) {
-            return timeConv(d.date)
-        }));
+        function subtractYearAndRedraw() {
+            currentYear = currentYear - 1;
+            reDraw(currentYear);
 
-        yScale.domain(domainChart);
+            if (currentYear == 2011) {
+                document.getElementById("sub_button").disabled = true;
+            }
+            if (currentYear < 2020) {
+                document.getElementById("add_button").disabled = false;
+            }
+        }
 
-        //-----------------------------AXES-----------------------------//
-        const yaxis = d3.axisLeft()
-            .scale(yScale)
-            .ticks(20)
-            .tickFormat(function (d) {
-                console.log(d / 1000000)
-                return d / 1000000 + "M"
+        let currentYear = 2011;
+
+        // World data
+        let lifeExpectancyCsv = 'https://raw.githubusercontent.com/Bradleykingz/working-with-d3/master/files/life-expectancy.csv';
+        let worldMapJson = 'https://raw.githubusercontent.com/Bradleykingz/working-with-d3/master/files/world.geo.json'
+
+        const width = 1000;
+        const height = 600;
+        const margin = 5;
+        const padding = 5;
+        const adj = 30;
+
+        // Create map object
+        const projection = d3.geoMercator()
+            .translate([width / 2, height / 1.3])
+            .scale([150]);
+
+        const path = d3.geoPath().projection(projection);
+
+        const container = d3.select("#map_container");
+        const svg = container.append("svg")
+            .attr("preserveAspectRatio", "xMinYMin meet")
+            .attr("viewBox", "-"
+                + adj + " -"
+                + adj + " "
+                + (width + adj * 3) + " "
+                + (height + adj * 3))
+            .style("padding", padding)
+            .style("margin", margin)
+            .classed("svg-content", true);
+
+
+        var w = 300, h = 50;
+        lowColor = '#c8f0cd'
+        mediumColor1 = '#9dd5a4'
+        mediumColor2 = '#73c97d'
+        mediumColor3 = '#5bac65'
+        mediumColor4 = '#4aae60'
+        highColor = '#0a300f'
+
+        // Legend
+        var key = container
+            .append("svg")
+            .attr("width", w)
+            .attr("height", h)
+            .attr("class", "legend");
+
+        var legend = key.append("defs")
+            .append("svg:linearGradient")
+            .attr("id", "gradient")
+            .attr("x1", "0%")
+            .attr("y1", "100%")
+            .attr("x2", "100%")
+            .attr("y2", "100%")
+            .attr("spreadMethod", "pad");
+
+        legend.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", lowColor)
+            .attr("stop-opacity", 1);
+
+        legend.append("stop")
+            .attr("offset", "20%")
+            .attr("stop-color", mediumColor1)
+            .attr("stop-opacity", 1);
+        
+        legend.append("stop")
+            .attr("offset", "40%")
+            .attr("stop-color", mediumColor2)
+            .attr("stop-opacity", 1);
+
+        legend.append("stop")
+            .attr("offset", "60%")
+            .attr("stop-color", mediumColor3)
+            .attr("stop-opacity", 1);
+
+        legend.append("stop")
+            .attr("offset", "80%")
+            .attr("stop-color", mediumColor4)
+            .attr("stop-opacity", 1);
+
+        legend.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", highColor)
+            .attr("stop-opacity", 1);
+
+        key.append("rect")
+            .attr("width", w)
+            .attr("height", h - 30)
+            .style("fill", "url(#gradient)")
+            .attr("transform", "translate(0,10)");
+
+        var y = d3.scaleLinear()
+            .range([w, 0])
+            .domain([82, 49]);
+
+        var yAxis = d3.axisBottom()
+            .scale(y)
+            .ticks(10);
+
+        key.append("g")
+            .attr("class", "y axis")
+            .attr("transform", "translate(0,30)")
+            .call(yAxis);
+
+
+        // Tooltip
+        const tooltip = d3.tip().attr('class', 'tooltip')
+            .html(function (d) {
+                return `<div>
+                        <p><b>${d.entity}</b>: ${d.lifeExpectancy} años</p>
+                    </div>`;
             });
 
-        const xaxis = d3.axisBottom()
-            .tickFormat(d3.timeFormat('%Y'))
-            .scale(xScale);
+        svg.attr("width", width)
+            .attr("height", height)
+            .style("background", 'white')
+            .append('g')
+            .call(tooltip);
 
-        //----------------------------LINES-----------------------------//
-        const line = d3.line()
-            .x(function (d) { return xScale(d.date); })
-            .y(function (d) { return yScale(d.measurement); });
-
-        let id = 0;
-        const ids = function () {
-            return "line-" + id++;
-        }
-
-        //---------------------------TOOLTIP----------------------------//
-        const tooltip = d3.select("body").append("div")
-            .attr("class", "tooltip")
-            .style("opacity", 0)
-            .style("position", "absolute");
-
-        //-------------------------2. DRAWING---------------------------//
-        //-----------------------------AXES-----------------------------//
-        svg.append("g")
-            .attr("class", "axis")
-            .attr("transform", "translate(0," + height + ")")
-            .call(xaxis);
-
-        svg.append("g")
-            .attr("class", "axis")
-            .call(yaxis)
-            .append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("dy", ".75em")
-            .attr("y", 6)
-            .style("text-anchor", "end")
-            .text("Millones " + badge);
-
-        //----------------------------LINES-----------------------------//
-        const lines = svg.selectAll("lines")
-            .data(slices)
-            .enter()
-            .append("g");
-
-        lines.append("path")
-            .attr("class", ids)
-            .attr("d", function (d) { return line(d.values); });
-
-        lines.append("text")
-            .attr("class", "country_label")
-            .datum(function (d) {
-                return {
-                    id: d.id,
-                    value: d.values[d.values.length - 1]
-                };
-            })
-            .attr("transform", function (d) {
-                return "translate(" + (xScale(d.value.date) + 10)
-                    + "," + (yScale(d.value.measurement) + 5) + ")";
-            })
-            .attr("x", 5)
-            .text(function (d) {
-                if (d.id == "A")
-                    return ("España");
-                else if (d.id == "B")
-                    return ("Alemania")
-                else if (d.id == "C")
-                    return ("Francia")
-                else if (d.id == "D")
-                    return ("Italia")
-                else if (d.id == "EU")
-                    return ("U.E.")
-                else if (d.id == "US")
-                    return ("EE.UU")
-                else if (d.id == "CH")
-                    return ("China")
-                else
-                    return ("Unknown ") + d.id;
-            });
-
-        //---------------------------POINTS-----------------------------// 
-        lines.selectAll("points")
-            .data(function (d) { return d.values })
-            .enter()
-            .append("circle")
-            .attr("cx", function (d) { return xScale(d.date); })
-            .attr("cy", function (d) { return yScale(d.measurement); })
-            .attr("r", 1)
-            .attr("class", "point")
-            .style("opacity", 1);
-
-        //---------------------------EVENTS-----------------------------//    
-        lines.selectAll("circles")
-            .data(function (d) { return (d.values); })
-            .enter()
-            .append("circle")
-            .attr("cx", function (d) { return xScale(d.date); })
-            .attr("cy", function (d) { return yScale(d.measurement); })
-            .attr('r', 10)
-            .style("opacity", 0)
-            .on('mouseover', function (d) {
-                tooltip.transition()
-                    .delay(30)
-                    .duration(200)
-                    .style("opacity", 1);
-
-                tooltip.html(d.measurement)
-                    .style("left", (d3.event.pageX + 25) + "px")
-                    .style("top", (d3.event.pageY) + "px");
-
-                const selection = d3.select(this).raise();
-
-                selection
-                    .transition()
-                    .delay("20")
-                    .duration("200")
-                    .attr("r", 6)
-                    .style("opacity", 1)
-                    .style("fill", "#ed3700");
-            })
-            .on("mouseout", function (d) {
-                tooltip.transition()
-                    .duration(100)
-                    .style("opacity", 0);
-
-                const selection = d3.select(this);
-
-                selection
-                    .transition()
-                    .delay("20")
-                    .duration("200")
-                    .attr("r", 10)
-                    .style("opacity", 0);
-            });
-
-    });
-}
-
-function drawCleanCircularChart() {
-    // Dimensions and margins of the chart
-    const width = 960;
-    const height = 500;
-
-    // append the svg object to the body of the page
-    var svg = d3.select("#circle_container")
-        .append("svg")
-        .attr("width", width)
-        .attr("height", height)
-
-    // Read data
-    d3.csv("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/11_SevCatOneNumNestedOneObsPerGroup.csv", function (data) {
-
-        // Color palette for continents?
-        var color = d3.scaleOrdinal()
-            .domain(["Asia", "Europe", "Africa", "Oceania", "Americas"])
-            .range(d3.schemeSet1);
-
-        // Size scale for countries
-        var size = d3.scaleLinear()
-            .domain([0, 31])
-            .range([5, 55])  // circle will be between 7 and 55 px wide
-
-        // create a tooltip
-        var Tooltip = d3.select("#circle_container")
-            .append("div")
-            .style("opacity", 0)
-            .attr("class", "tooltip")
-            .style("background-color", "white")
-            .style("border", "solid")
-            .style("border-width", "2px")
-            .style("border-radius", "5px")
-            .style("padding", "5px")
-
-        // Three function that change the tooltip when user hover / move / leave a cell
-        var mouseover = function (d) {
-            Tooltip
-                .style("opacity", 1)
-        }
-        var mousemove = function (d) {
-            Tooltip
-                .html('<u>' + d.key + '</u>' + "<br>" + d.value + " unemployment percentage")
-                .style("left", (d3.mouse(this)[0] + 20) + "px")
-                .style("top", (d3.mouse(this)[1]) + "px")
-        }
-        var mouseleave = function (d) {
-            Tooltip
-                .style("opacity", 0)
-        }
-
-        // Initialize the circle: all located at the center of the svg area
-        var node = svg.append("g")
-            .selectAll("circle")
+        // Draw the map
+        const draw = (path, data, scale) => svg.selectAll()
             .data(data)
             .enter()
-            .append("circle")
-            .attr("class", "node")
-            .attr("r", function (d) { return size(d.value) })
-            .attr("cx", width / 2)
-            .attr("cy", height / 2)
-            .style("fill", function (d) { return color(d.region) })
-            .style("fill-opacity", 0.8)
-            .attr("stroke", "black")
-            .style("stroke-width", 1)
-            .on("mouseover", mouseover) // What to do when hovered
-            .on("mousemove", mousemove)
-            .on("mouseleave", mouseleave)
-            .call(d3.drag() // call specific function when circle is dragged
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended));
-
-        // Features of the forces applied to the nodes:
-        var simulation = d3.forceSimulation()
-            .force("center", d3.forceCenter().x(width / 2).y(height / 2)) // Attraction to the center of the svg area
-            .force("charge", d3.forceManyBody().strength(.1)) // Nodes are attracted one each other of value is > 0
-            .force("collide", d3.forceCollide().strength(.2).radius(function (d) { return (size(d.value) + 3) }).iterations(1)) // Force that avoids circle overlapping
-
-        // Apply these forces to the nodes and update their positions.
-        // Once the force algorithm is happy with positions ('alpha' value is low enough), simulations will stop.
-        simulation
-            .nodes(data)
-            .on("tick", function (d) {
-                node
-                    .attr("cx", function (d) { return d.x; })
-                    .attr("cy", function (d) { return d.y; })
+            .append('path')
+            .attr('d', path)
+            .attr('class', 'country')
+            .style('fill', function (d) {
+                return scale(d.lifeExpectancy);
+            }).on('mouseover', function (d) {
+                d3.select(this)
+                    .style('fill', tinycolor(scale(d.lifeExpectancy)).darken(10).toString());
+                tooltip.show(d, this)
+            })
+            .on('mouseout', function (d) {
+                d3.select(this)
+                    .style('fill', scale(d.lifeExpectancy));
+                tooltip.hide()
+            }).on('mousedown', function (d) {
+                console.log(d.year, d.lifeExpectancy);
             });
 
-        // What happens when a circle is dragged?
-        function dragstarted(d) {
-            if (!d3.event.active) simulation.alphaTarget(.03).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-        }
-        function dragged(d) {
-            d.fx = d3.event.x;
-            d.fy = d3.event.y;
-        }
-        function dragended(d) {
-            if (!d3.event.active) simulation.alphaTarget(.03);
-            d.fx = null;
-            d.fy = null;
+        // Prepare data
+        d3.csv(lifeExpectancyCsv).then(data => {
+            d3.json(worldMapJson).then(worldMap => {
+                let mapData = getYearData(data, currentYear, worldMap, true);
+
+                let extent = d3.extent(mapData, d => d.lifeExpectancy);
+
+                console.log(extent);
+
+                let colorScale = d3.scaleSequential(d3.interpolateGreens)
+                    .domain(extent)
+
+                draw(path, mapData, colorScale);
+            });
+        });
+
+        // This function redraw the map when the year changes
+        function reDraw(year) {
+            d3.csv(lifeExpectancyCsv).then(data => {
+                d3.json(worldMapJson).then(worldMap => {
+
+                    let mapData = getYearData(data, year, worldMap, true);
+
+                    let extent = d3.extent(mapData, d => d.lifeExpectancy);
+
+                    let colorScale = d3.scaleSequential(d3.interpolateGreens)
+                        .domain(extent)
+
+                    let element = document.getElementById('currentYear');
+                    element.innerHTML = year;
+                    draw(path, mapData, colorScale);
+                });
+            });
         }
 
-    })
-}
+        // Transform the data depending on the year
+        function transformData(data, currentYear) {
+            console.log(data[0]);
+            let newArr = _.map(data, era => ({
+                entity: era['Entity'],
+                lifeExpectancy: +(era['LifeExpectacy']),
+                code: era['Code'],
+                year: +(era['Year'])
+            }));
 
-function changeLineChart() {
-    var div = document.getElementById('container');
-    while (div.firstChild) {
-        div.removeChild(div.firstChild);
-    }
-    var selectedGroup = document.getElementById("groups");
-    if (selectedGroup.options[selectedGroup.selectedIndex].value == "europe") {
-        drawLineChart("https://raw.githubusercontent.com/denispato679/Visual-analytics/main/pib-data.csv", [1000000, 3500000], "€");
-    }
-    else if (selectedGroup.options[selectedGroup.selectedIndex].value == "world") {
-        drawLineChart("https://raw.githubusercontent.com/denispato679/Visual-analytics/main/pib-world.csv", [7000000, 21500000], "$");
-    }
-}
+            return _.filter(newArr, today => {
+                return today['year'] === currentYear;
+            });
+        }
 
-</script>
+        // Get the data for a year
+        function getYearData(data, currentYear, worldMap, transform) {
+            let currentYearArray = [];
+            if (transform) {
+                currentYearArray = transformData(data, currentYear);
+            }
+            else {
+                currentYearArray = data;
+            }
+
+            return _(currentYearArray)
+                .keyBy('code')
+                .merge(_.keyBy(worldMap.features, 'properties.iso_a3'))
+                .values()
+                .value();
+        }
+
+        // This function draw the line chart depending of the data
+        function drawLineChart(dataFile, domainChart, badge) {
+            
+            // Define dimensions
+            const width = 960;
+            const height = 500;
+            const margin = 5;
+            const padding = 5;
+            const adj = 30;
+            // First append the svg
+            const svg = d3.select("div#container").append("svg")
+                .attr("preserveAspectRatio", "xMinYMin meet")
+                .attr("viewBox", "-"
+                    + adj + " -"
+                    + adj + " "
+                    + (width + adj * 3) + " "
+                    + (height + adj * 3))
+                .style("padding", padding)
+                .style("margin", margin)
+                .classed("svg-content", true);
+
+            // Prepare the data
+            const timeConv = d3.timeParse("%Y");
+            const dataset = d3.csv(dataFile);
+            dataset.then(function (data) {
+                var slices = data.columns.slice(1).map(function (id) {
+                    return {
+                        id: id,
+                        values: data.map(function (d) {
+                            return {
+                                date: timeConv(d.date),
+                                measurement: +d[id]
+                            };
+                        })
+                    };
+                });
+
+                console.log(data)
+                // Define scales and domains depending on data
+                const xScale = d3.scaleTime().range([0, width]);
+                const yScale = d3.scaleLinear().range([height, 0]);
+                xScale.domain(d3.extent(data, function (d) {
+                    return timeConv(d.date)
+                }));
+
+                yScale.domain(domainChart);
+
+                // Axis
+                const yaxis = d3.axisLeft()
+                    .scale(yScale)
+                    .ticks(20)
+                    .tickFormat(function (d) {
+                        console.log(d / 1000000)
+                        return d / 1000000 + "M"
+                    });
+
+                const xaxis = d3.axisBottom()
+                    .tickFormat(d3.timeFormat('%Y'))
+                    .scale(xScale);
+
+                // Lines
+                const line = d3.line()
+                    .x(function (d) { return xScale(d.date); })
+                    .y(function (d) { return yScale(d.measurement); });
+
+                let id = 0;
+                const ids = function () {
+                    return "line-" + id++;
+                }
+
+                // Tooltip
+                const tooltip = d3.select("body").append("div")
+                    .attr("class", "tooltip")
+                    .style("opacity", 0)
+                    .style("position", "absolute");
+
+                // Draw all the elements
+                svg.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xaxis);
+
+                svg.append("g")
+                    .attr("class", "axis")
+                    .call(yaxis)
+                    .append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("dy", ".75em")
+                    .attr("y", 6)
+                    .style("text-anchor", "end")
+                    .text("Millones " + badge);
+
+                const lines = svg.selectAll("lines")
+                    .data(slices)
+                    .enter()
+                    .append("g");
+
+                lines.append("path")
+                    .attr("class", ids)
+                    .attr("d", function (d) { return line(d.values); });
+
+                lines.append("text")
+                    .attr("class", "country_label")
+                    .datum(function (d) {
+                        return {
+                            id: d.id,
+                            value: d.values[d.values.length - 1]
+                        };
+                    })
+                    .attr("transform", function (d) {
+                        return "translate(" + (xScale(d.value.date) + 10)
+                            + "," + (yScale(d.value.measurement) + 5) + ")";
+                    })
+                    .attr("x", 5)
+                    .text(function (d) {
+                        if (d.id == "A")
+                            return ("España");
+                        else if (d.id == "B")
+                            return ("Alemania")
+                        else if (d.id == "C")
+                            return ("Francia")
+                        else if (d.id == "D")
+                            return ("Italia")
+                        else if (d.id == "EU")
+                            return ("U.E.")
+                        else if (d.id == "US")
+                            return ("EE.UU")
+                        else if (d.id == "CH")
+                            return ("China")
+                        else
+                            return ("Unknown ") + d.id;
+                    });
+
+                // Define the points for each value
+                lines.selectAll("points")
+                    .data(function (d) { return d.values })
+                    .enter()
+                    .append("circle")
+                    .attr("cx", function (d) { return xScale(d.date); })
+                    .attr("cy", function (d) { return yScale(d.measurement); })
+                    .attr("r", 1)
+                    .attr("class", "point")
+                    .style("opacity", 1);
+
+                // Events of the chart   
+                lines.selectAll("circles")
+                    .data(function (d) { return (d.values); })
+                    .enter()
+                    .append("circle")
+                    .attr("cx", function (d) { return xScale(d.date); })
+                    .attr("cy", function (d) { return yScale(d.measurement); })
+                    .attr('r', 10)
+                    .style("opacity", 0)
+                    .on('mouseover', function (d) {
+                        tooltip.transition()
+                            .delay(30)
+                            .duration(200)
+                            .style("opacity", 1);
+
+                        tooltip.html(d.measurement)
+                            .style("left", (d3.event.pageX + 25) + "px")
+                            .style("top", (d3.event.pageY) + "px");
+
+                        const selection = d3.select(this).raise();
+
+                        selection
+                            .transition()
+                            .delay("20")
+                            .duration("200")
+                            .attr("r", 6)
+                            .style("opacity", 1)
+                            .style("fill", "#ed3700");
+                    })
+                    .on("mouseout", function (d) {
+                        tooltip.transition()
+                            .duration(100)
+                            .style("opacity", 0);
+
+                        const selection = d3.select(this);
+
+                        selection
+                            .transition()
+                            .delay("20")
+                            .duration("200")
+                            .attr("r", 10)
+                            .style("opacity", 0);
+                    });
+
+            });
+        }
+
+        // This function draw the circular chart depending on the data
+        function drawCleanCircularChart(yearData) {
+
+            // Dimensions and margins of the chart
+            const width = 960;
+            const height = 500;
+            const margin = 5;
+            const padding = 5;
+            const adj = 30;
+            
+            var svg = d3.select("div#circle_container")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("preserveAspectRatio", "xMinYMin meet")
+                .attr("viewBox", "-"
+                    + adj + " -"
+                    + adj + " "
+                    + (width + adj * 3) + " "
+                    + (height + adj * 3))
+                .style("padding", padding)
+                .style("margin", margin)
+                .classed("svg-content", true);
+
+            // Read data
+            const dataset = d3.csv(yearData);
+            dataset.then(function (data) {
+
+                console.log(data)
+
+                // Color palette for continents
+                var color = d3.scaleOrdinal()
+                    .domain(["Asia", "Europe", "Africa", "Oceania", "Americas"])
+                    .range(d3.schemeSet1);
+
+                // Scale and domain for countries
+                var size = d3.scaleLinear()
+                    .domain([0, 31])
+                    .range([5, 55])  // circle will be between 7 and 55 px wide
+
+                var tooltip = d3.select("div#circle_container").append("div")
+                    .attr("class", "tooltip")
+                    .style("opacity", 0)
+                    .style("background-color", "white")
+                    .style("border", "solid")
+                    .style("border-width", "1px")
+                    .style("position", "absolute");
+
+                // Events of the chart
+                var mouseover = function (d) {
+                    tooltip
+                        .style("opacity", 1)
+                }
+                var mousemove = function (d) {
+                    tooltip
+                        .html('<b>' + d.key + '</b>' + ": " + d.value + " % de desempleo")
+                        .style("left", (d3.event.pageX + 25) + "px")
+                        .style("top", (d3.event.pageY) + "px");
+                }
+                var mouseleave = function (d) {
+                    tooltip
+                        .style("opacity", 0)
+                }
+
+                // Draw circles
+                var node = svg.append("g")
+                    .selectAll("circle")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "node")
+                    .attr("r", function (d) { return size(d.value) })
+                    .attr("cx", width / 2)
+                    .attr("cy", height / 2)
+                    .style("fill", function (d) { return color(d.region) })
+                    .style("fill-opacity", 0.8)
+                    .attr("stroke", "black")
+                    .style("stroke-width", 1)
+                    .on("mouseover", mouseover) // What to do when hovered
+                    .on("mousemove", mousemove)
+                    .on("mouseleave", mouseleave)
+                    .call(d3.drag() // call specific function when circle is dragged
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended));
+
+                console.log(node)
+
+                // Features of the simulation of the nodes:
+                var simulation = d3.forceSimulation()
+                    .force("center", d3.forceCenter().x(width / 2).y(height / 2)) // Attraction to the center of the svg area
+                    .force("charge", d3.forceManyBody().strength(.1)) // Nodes are attracted one each other of value is > 0
+                    .force("collide", d3.forceCollide().strength(.2).radius(function (d) { return (size(d.value) + 3) }).iterations(1)) // Force that avoids circle overlapping
+
+                simulation
+                    .nodes(data)
+                    .on("tick", function (d) {
+                        node
+                            .attr("cx", function (d) { return d.x; })
+                            .attr("cy", function (d) { return d.y; })
+                    });
+
+                // Behaviour when a circle is dragged
+                function dragstarted(d) {
+                    if (!d3.event.active) simulation.alphaTarget(.03).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+                function dragged(d) {
+                    d.fx = d3.event.x;
+                    d.fy = d3.event.y;
+                }
+                function dragended(d) {
+                    if (!d3.event.active) simulation.alphaTarget(.03);
+                    d.fx = null;
+                    d.fy = null;
+                }
+
+            })
+        }
+
+        drawCleanCircularChart("https://raw.githubusercontent.com/denispato679/Visual-analytics/main/unemp-2020-data.csv");
+
+        function changeCircularChart(year) {
+            console.log(year);
+
+
+        }
+
+        function changeLineChart() {
+            var div = document.getElementById('container');
+            while (div.firstChild) {
+                div.removeChild(div.firstChild);
+            }
+            var selectedGroup = document.getElementById("groups");
+            if (selectedGroup.options[selectedGroup.selectedIndex].value == "europe") {
+                drawLineChart("https://raw.githubusercontent.com/denispato679/Visual-analytics/main/pib-data.csv", [1000000, 3500000], "€");
+            }
+            else if (selectedGroup.options[selectedGroup.selectedIndex].value == "world") {
+                drawLineChart("https://raw.githubusercontent.com/denispato679/Visual-analytics/main/pib-world.csv", [7000000, 21500000], "$");
+            }
+        }
+
+    </script>
 </body>

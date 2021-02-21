@@ -1,74 +1,83 @@
 /* AXES */
+
 /* ticks */
-.axis line{
-stroke: #706f6f;
-stroke-width: 0.5;
-shape-rendering: crispEdges;
+
+.axis line {
+    stroke: #706f6f;
+    stroke-width: 0.5;
+    shape-rendering: crispEdges;
 }
 
 /* axis contour */
+
 .axis path {
-stroke: #706f6f;
-stroke-width: 0.7;
-shape-rendering: crispEdges;
+    stroke: #706f6f;
+    stroke-width: 0.7;
+    shape-rendering: crispEdges;
 }
 
 /* axis text */
+
 .axis text {
-fill: #2b2929;
-font-family: Georgia;
-font-size: 120%;
+    fill: #2b2929;
+    font-family: Georgia;
+    font-size: 120%;
 }
 
 /* LINE CHART */
+
 path.line-0 {
-fill: none;
-stroke: #ed3700;
+    fill: none;
+    stroke: #ed3700;
 }
 
 path.line-1 {
-fill: none;
-stroke: #2b2929;
-stroke-dasharray: 2;
+    fill: none;
+    stroke: #2b2929;
+    stroke-dasharray: 2;
 }
 
 path.line-2 {
-fill: none;
-stroke: #9c9c9c;
-stroke-dasharray: 6;
+    fill: none;
+    stroke: #9c9c9c;
+    stroke-dasharray: 6;
 }
 
 path.line-3 {
-fill: none;
-stroke: #0ab5ac;
-stroke-dasharray: 4;
+    fill: none;
+    stroke: #0ab5ac;
+    stroke-dasharray: 4;
 }
 
 .serie_label {
-fill: #2b2929;
-font-family: Georgia;
-font-size: 80%;
+    fill: #2b2929;
+    font-family: Georgia;
+    font-size: 80%;
 }
 
 /* TOOLTIP */
+
 .tooltip {
-fill: #2b2929;
-font-family: Georgia;
-font-size: 150%;
+    fill: #2b2929;
+    font-family: Georgia;
+    font-size: 100%;
 }
 
 /* POINTS */
+
 .point {
-stroke: none;
-fill: #eff305;
+    stroke: none;
+    fill: #eff305;
 }
 
 /* AXIS TEXT */
+
 .axis text {
     font-size: 95%;
 }
 
 /* COUNTRY LABEL */
+
 .country_label {
     font-size: 69%;
 }
@@ -84,6 +93,11 @@ h1 {
     background-color: rgba(165, 42, 42, 0.583);
 }
 
+h2 {
+    color: #2b2929;
+    font-family: Georgia;
+}
+
 label {
     color: #2b2929;
     font-family: Georgia;
@@ -97,9 +111,83 @@ select {
 }
 
 #container {
-    margin-left: auto ;
-    margin-right: auto ;
-    margin-top: 5%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2%;
+    margin-bottom: 5%;
     width: 60%;
     height: 60%;
+    border: solid;
+    border-color: #2b2929;
+    border-radius: 5px;
+    border-width: 3px;
+}
+
+#circle_container {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 5%;
+    width: 70%;
+    height: 60%;
+    border: solid;
+    border-color: #2b2929;
+    border-radius: 5px;
+    border-width: 3px;
+}
+
+#map_container {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    /* margin-top: 5%; */
+    width: 80%;
+    height: 60%;
+    border: solid;
+    border-color: #2b2929;
+    border-radius: 5px;
+    border-width: 3px;
+}
+
+.node:hover {
+    stroke-width: 7px !important;
+    opacity: 1 !important;
+}
+
+.country {
+    stroke-width: 1;
+    stroke: darkslategrey;
+    fill: white;
+    transition: all 0.25s ease-in-out;
+}
+
+.country:hover {
+    cursor: pointer;
+    fill: #555555;
+}
+
+div.tooltip {
+    text-align: center;
+    min-width: 60px;
+    transition: opacity 0.25s ease-in-out;
+    min-height: 28px;
+    padding: 8px 12px;
+    font: 12px sans-serif;
+    background: white;
+    border: 1px solid lightgray;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+button {
+    background: transparent;
+    border: 1px solid lightgray;
+    border-radius: 4px;
+    padding: 4px 16px;
+    transition: all 0.25s ease-in-out;
+}
+
+button:hover {
+    cursor: pointer;
+    border: 1px solid darkgray;
 }
